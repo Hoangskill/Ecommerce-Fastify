@@ -8,7 +8,7 @@ fastify.register(require('./src/middlewares/authenticate'));
 
 fastify.register(require('./src/routes/auth.routes'), { prefix: '/api/auth' });
 fastify.register(require('./src/routes/product.routes'), { prefix: '/api' });
-
+fastify.register(require('./src/routes/category.routes'), { prefix: '/api' });
 const start = async () => {
   try {
     await fastify.listen({ port: process.env.PORT || 3000 });
