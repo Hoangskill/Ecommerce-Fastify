@@ -59,13 +59,17 @@ async function logoutUser(userId, refreshToken) {
 }
 
 async function refreshToken(refreshToken) {
+  console.log('Received refreshToken:', refreshToken); // Kiểm tra giá trị nhận được
   const userId = await redis.get(`refresh:${refreshToken}`);
+  console.log('Redis userId:', userId); // Kiểm tra Redis
   if (!userId) throw new Error('Invalid refresh token');
 
   const storedToken = await prisma.refreshToken.findFirst({ where: { token: refreshToken } });
+  console.log('Stored token in DB:', storedToken); // Kiểm tra database
   if (!storedToken || storedToken.userId !== userId) throw new Error('Invalid refresh token');
 
   const decoded = await verifyToken(refreshToken, process.env.JWT_REFRESH_SECRET);
+  console.log('Decoded token:', decoded); // Kiểm tra JWT
   const newAccessToken = signToken({ id: decoded.id }, process.env.JWT_ACCESS_SECRET, '15m');
   return { accessToken: newAccessToken };
 }

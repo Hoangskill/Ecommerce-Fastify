@@ -1,5 +1,4 @@
 const { registerUser, loginUser, logoutUser, refreshToken, forgotPassword,resetPassword } = require('../services/auth.service');
-
 async function register(request, reply) {
   const { name, email, password } = request.body;
   try {
@@ -32,12 +31,23 @@ async function logout(request, reply) {
 }
 
 async function refresh(request, reply) {
-  const { refreshToken } = request.body;
+  // Kiểm tra xem request.body có chứa refreshToken không
+  if (!request.body || !request.body.refreshToken) {
+    console.log('Error: refreshToken is missing in request body', request.body);
+    return reply.code(400).send({ message: 'refreshToken is required' });
+  }
+
+  const { refreshToken: token } = request.body;
+  console.log('Refresh request body:', request.body); // Debug: Kiểm tra body
+  console.log('Calling refreshToken with:', token); // Debug: Kiểm tra token
+
   try {
-    const tokens = await refreshToken(refreshToken);
+    const tokens = await refreshToken(token); // Gọi hàm refreshToken
+    console.log('New tokens generated:', tokens); // Debug: Kiểm tra kết quả
     return reply.send(tokens);
   } catch (error) {
-    return reply.code(401).send({ message: error.message });
+    console.error('Error in refresh:', error.message); // Debug: Log lỗi chi tiết
+    return reply.code(401).send({ message: error.message || 'Invalid refresh token' });
   }
 }
 
