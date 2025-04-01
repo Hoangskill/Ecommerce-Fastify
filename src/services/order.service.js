@@ -45,50 +45,58 @@ async function createOrder(userId, selectedItems) {
     });
   }
 
-  const order = await prisma.$transaction(async (tx) => {
-    for (const item of selectedItems) {
-      await tx.product.update({
-        where: { id: item.productId },
-        data: { stock: { decrement: item.quantity } }
-      });
-    }
-
-    const newOrder = await tx.order.create({
-      data: {
-        userId,
-        total,
-        status: 'PENDING',
-        items: { create: orderItems },
-      },
-      include: { items: { include: { product: true } } },
-    });
-
-    await tx.cartItem.deleteMany({
-      where: {
-        userId,
-        productId: { in: productIds },
-      },
-    });
-
-    return newOrder;
-  });
-
+  let newOrder;
   try {
-    await redis.del(`cart:${userId}`);
-     // Lấy danh sách đơn hàng mới từ DB
-     const updatedOrders = await prisma.order.findMany({
-        where: { userId },
-        include: { items: { include: { product: true } } },
-        orderBy: { createdAt: 'desc' },
-    });
+    newOrder = await prisma.$transaction(async (tx) => {
+      for (const item of selectedItems) {
+        await tx.product.update({
+          where: { id: item.productId },
+          data: { stock: { decrement: item.quantity } }
+        });
+      }
 
-    // Cập nhật lại cache orders
-    await redis.set(`orders:${userId}`, JSON.stringify(updatedOrders), 'EX', 3600);
+      const order = await tx.order.create({
+        data: {
+          userId,
+          total,
+          status: 'PENDING',
+          items: { create: orderItems },
+        },
+        include: { items: { include: { product: true } } },
+      });
+
+      await tx.cartItem.deleteMany({
+        where: {
+          userId,
+          productId: { in: productIds },
+        },
+      });
+
+      return order;
+    });
   } catch (error) {
-    console.error('Error clearing cache:', error.message);
+    throw new Error(`Failed to create order: ${error.message}`);
   }
 
-  return order;
+  try {
+    // Xóa cache giỏ hàng
+    await redis.del(`cart:${userId}`);
+
+    // Lấy đơn hàng mới nhất (thay vì lấy toàn bộ)
+    const latestOrder = await prisma.order.findFirst({
+      where: { userId },
+      include: { items: { include: { product: true } } },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    if (latestOrder) {
+      await redis.set(`orders:${userId}`, JSON.stringify([latestOrder]), 'EX', 3600);
+    }
+  } catch (error) {
+    console.error('Error updating cache:', error.message);
+  }
+
+  return newOrder;
 }
 
 async function getUserOrders(userId) {
