@@ -74,8 +74,16 @@ async function createOrder(userId, selectedItems) {
   });
 
   try {
-    await redis.del(`orders:${userId}`);
     await redis.del(`cart:${userId}`);
+     // Lấy danh sách đơn hàng mới từ DB
+     const updatedOrders = await prisma.order.findMany({
+        where: { userId },
+        include: { items: { include: { product: true } } },
+        orderBy: { createdAt: 'desc' },
+    });
+
+    // Cập nhật lại cache orders
+    await redis.set(`orders:${userId}`, JSON.stringify(updatedOrders), 'EX', 3600);
   } catch (error) {
     console.error('Error clearing cache:', error.message);
   }
