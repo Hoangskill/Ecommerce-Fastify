@@ -68,7 +68,7 @@ async function refreshToken(refreshToken) {
   console.log('Stored token in DB:', storedToken); // Kiểm tra database
   if (!storedToken || storedToken.userId !== userId) throw new Error('Invalid refresh token');
 
-  const decoded = await verifyToken(refreshToken, process.env.JWT_REFRESH_SECRET);
+  const decoded = verifyToken(refreshToken, process.env.JWT_REFRESH_SECRET);
   console.log('Decoded token:', decoded); // Kiểm tra JWT
   const newAccessToken = signToken({ id: decoded.id }, process.env.JWT_ACCESS_SECRET, '15m');
   return { accessToken: newAccessToken };

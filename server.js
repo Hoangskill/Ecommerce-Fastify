@@ -12,6 +12,10 @@ fastify.register(require('./src/routes/product.routes'), { prefix: '/api' });
 fastify.register(require('./src/routes/category.routes'), { prefix: '/api' });
 fastify.register(require('./src/routes/permission.routes'), { prefix: '/api' });
 fastify.register(require('./src/routes/rolePermission.routes'), { prefix: '/api' });
+// fastify.register(require('./src/routes/user.routes'), { prefix: '/api' });
+fastify.register(require('./src/routes/order.routes'), { prefix: '/api' });   
+fastify.register(require('./src/routes/cart.routes'), { prefix: '/api' });
+
 const start = async () => {
   try {
     await fastify.listen({ port: process.env.PORT || 3000 });

@@ -2,7 +2,6 @@ const fp = require('fastify-plugin');
 const { verifyToken } = require('../utils/jwt');
 
 module.exports = fp(async (fastify, opts) => {
-    //Thêm phương thức authenticate vào fastify
   fastify.decorate('authenticate', async (request, reply) => {
     const token = request.headers.authorization?.replace('Bearer ', '');
     if (!token) {
@@ -10,12 +9,15 @@ module.exports = fp(async (fastify, opts) => {
     }
 
     try {
-    // Verify token: Giaỉ mã token, nếu token hợp lệ thì trả về dữ liệu
-    // trong token, ngược lại nếu token không hợp lệ thì trả về lỗi 401
-      const decoded = await verifyToken(token, process.env.JWT_ACCESS_SECRET);
+      const decoded = verifyToken(token, process.env.JWT_ACCESS_SECRET); // Xóa await vì verifyToken không phải async
+      if (!decoded.id) {
+        return reply.code(401).send({ message: 'Invalid token: User ID not found in token' });
+      }
       request.user = decoded;
+      console.log('Authenticated user:', request.user); // Debug
     } catch (error) {
-      return reply.code(401).send({ message: 'Invalid token' });
+      console.error('Authentication error:', error.message);
+      return reply.code(401).send({ message: `Invalid token: ${error.message}` });
     }
   });
 });
